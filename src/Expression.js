@@ -338,19 +338,21 @@ export class Expression {
         if (op == 'find') {
             let keys = this.keys
             if (att == this.sort && typeof value == 'object' && Object.keys(value).length > 0) {
-                let [action, vars] = Object.entries(value)[0]
-                if (KeyOperators.indexOf(action) < 0) {
-                    throw new OneTableArgError(`Invalid KeyCondition operator "${action}"`)
+                for (const [action,vars] of Object.entries(value)) {
+                    if (KeyOperators.indexOf(action) < 0) {
+                        throw new OneTableArgError(`Invalid KeyCondition operator "${action}"`)
+                    }
+                    if (action == 'begins_with' || action == 'begins') {
+                        keys.push(`begins_with(#_${this.addName(att)}, :_${this.addValue(vars)})`)
+                    } else if (action == 'between') {
+                        keys.push(
+                            `#_${this.addName(att)} BETWEEN :_${this.addValue(vars[0])} AND :_${this.addValue(vars[1])}`
+                        )
+                    } else {
+                        keys.push(`#_${this.addName(att)} ${action} :_${this.addValue(value[action])}`)
+                    }
                 }
-                if (action == 'begins_with' || action == 'begins') {
-                    keys.push(`begins_with(#_${this.addName(att)}, :_${this.addValue(vars)})`)
-                } else if (action == 'between') {
-                    keys.push(
-                        `#_${this.addName(att)} BETWEEN :_${this.addValue(vars[0])} AND :_${this.addValue(vars[1])}`
-                    )
-                } else {
-                    keys.push(`#_${this.addName(att)} ${action} :_${this.addValue(value[action])}`)
-                }
+
             } else {
                 keys.push(`#_${this.addName(att)} = :_${this.addValue(value)}`)
             }
